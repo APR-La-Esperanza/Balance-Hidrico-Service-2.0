@@ -1,12 +1,14 @@
-package cl.LaEsperanza.BalanceHidrico.Service;
+package cl.LaEsperanza.balance_hidrico.service;
 
-import cl.LaEsperanza.BalanceHidrico.Repository.BalanceHidricoRepository;
-import cl.LaEsperanza.BalanceHidrico.model.BalanceHidrico;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import java.util.List;
+
+import cl.LaEsperanza.balance_hidrico.model.BalanceHidricoModel;
+import cl.LaEsperanza.balance_hidrico.repository.BalanceHidricoRepository;
 
 @Service
 public class BalanceHidricoService {
@@ -16,16 +18,16 @@ public class BalanceHidricoService {
 
     private static final Logger log = LoggerFactory.getLogger(BalanceHidricoService.class);
 
-    public BalanceHidrico saveBalance(BalanceHidrico balance) {
+    public BalanceHidricoModel saveBalance(BalanceHidricoModel balance) {
         log.info("Registrando balance hidrico para fecha: {}", balance.getFecha());
         double porcentaje = ((balance.getAguaBombeadaM3() - balance.getAguaFacturadaM3()) / balance.getAguaBombeadaM3()) * 100;
         balance.setAlertaPerdida(porcentaje > 25);
-        BalanceHidrico saved = balanceHidricoRepository.save(balance);
+        BalanceHidricoModel saved = balanceHidricoRepository.save(balance);
         log.info("Balance hidrico registrado con ID: {}", saved.getId());
         return saved;
     }
 
-    public List<BalanceHidrico> getAllBalances() {
+    public List<BalanceHidricoModel> getAllBalances() {
         log.info("Obteniendo todos los balances hidricos.");
         return balanceHidricoRepository.findAll();
     }
