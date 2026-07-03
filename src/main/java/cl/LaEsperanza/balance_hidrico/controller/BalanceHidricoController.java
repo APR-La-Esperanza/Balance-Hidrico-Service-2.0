@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader; // <-- NUEVO: Para leer cabeceras en WebFlux de forma limpia
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -16,14 +18,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/api/v1/balance-hidrico")
-// @Tag agrupa este grupo de endpoints bajo un título limpio en la interfaz web de Swagger
 @Tag(name = "Balance Hídrico", description = "Endpoints de integración técnica para auditorías operacionales y financieras")
 public class BalanceHidricoController {
 
@@ -31,12 +30,10 @@ public class BalanceHidricoController {
     private BalanceHidricoService balanceHidricoService;
 
     @PostMapping
-    // 1. @Operation: Describe qué hace y el propósito del método ante el profesor
     @Operation(
         summary = "Calcular y registrar nuevo Balance Hídrico",
         description = "Consume el agua inyectada y el agua cobrada. Si las pérdidas técnicas superan el 25%, genera automáticamente una alerta hídrica en el sistema."
     )
-    // 2. @ApiResponse: Documenta de manera formal todos los posibles códigos HTTP de salida
     @ApiResponse(
         responseCode = "201", 
         description = "Balance hídrico procesado y guardado correctamente."
@@ -50,8 +47,8 @@ public class BalanceHidricoController {
         description = "Acceso denegado: Token JWT ausente o sin privilegios suficientes."
     )
     public ResponseEntity<?> createBalance(
-        // 3. @RequestBody de OpenAPI + 4. @ExampleObject: Generan una plantilla JSON de prueba visible en el navegador
-        @RequestBody(
+        // Cambiamos el @RequestBody de OpenAPI a io.swagger.v3.oas.annotations.parameters.RequestBody para evitar choques de nombres
+        @io.swagger.v3.oas.annotations.parameters.RequestBody(
             description = "Estructura requerida para auditar el flujo de agua total del mes",
             required = true,
             content = @Content(
@@ -64,16 +61,19 @@ public class BalanceHidricoController {
                 )
             )
         )
-        @org.springframework.web.bind.annotation.RequestBody BalanceHidricoModel balance, 
-        HttpServletRequest request
+        @RequestBody BalanceHidricoModel balance, 
+        
+        // Reemplazo de HttpServletRequest por @RequestHeader. "required = false" evita que Spring rompa la petición antes de que tú valides
+        @RequestHeader(value = "Authorization", required = false) String authHeader
     ) {
-        String authHeader = request.getHeader("Authorization");
+        // Tu lógica de validación de seguridad sigue funcionando exactamente igual:
         if (authHeader == null || authHeader.isEmpty()) {
             Map<String, Object> error = new HashMap<>();
             error.put("error", "Forbidden");
             error.put("message", "Acceso denegado: Token ausente");
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
         }
+        
         return new ResponseEntity<>(balanceHidricoService.saveBalance(balance), HttpStatus.CREATED);
     }
 }
